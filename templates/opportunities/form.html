@@ -1,0 +1,196 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if is_new %}Создание роли{% else %}Редактирование роли{% endif %} — Движ НГУ{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-9">
+            <div class="card shadow-sm border-0 rounded-4 p-4 p-md-5 bg-white">
+                <div class="mb-4">
+                    <h2 class="fw-bold">
+                        {% if is_new %}
+                            Создание новой роли
+                        {% else %}
+                            Редактирование: {{ opportunity.title }}
+                        {% endif %}
+                    </h2>
+                    <p class="text-muted small">
+                        Заполните параметры роли согласно правилам платформы «Движ НГУ».
+                    </p>
+                </div>
+
+                {% if is_restricted %}
+                    <div class="alert alert-warning border-warning d-flex align-items-center mb-4">
+                        <i class="bi bi-shield-lock-fill fs-3 me-3 text-warning-emphasis"></i>
+                        <div>
+                            <strong>Режим защиты условий:</strong> На данную роль уже поступили первые отклики студентов. Чтобы условия оставались прозрачными и неизменными для кандидатов, редактирование названия, дат, обязанностей и условий вознаграждения заблокировано. <strong>Вы можете только увеличить число мест.</strong>
+                        </div>
+                    </div>
+                {% endif %}
+
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for err in form.non_field_errors %}
+                            <div>{{ err }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <form method="post" novalidate>
+                    {% csrf_token %}
+
+                    <div class="row g-3 mb-4">
+                        <!-- Название -->
+                        <div class="col-md-8">
+                            <label class="form-label fw-semibold">Название роли *</label>
+                            {{ form.title }}
+                            {% if form.title.errors %}
+                                <div class="text-danger small mt-1">{{ form.title.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Категория -->
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Категория *</label>
+                            {{ form.category }}
+                            {% if form.category.errors %}
+                                <div class="text-danger small mt-1">{{ form.category.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Обязанности -->
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Обязанности и задачи *</label>
+                            {{ form.duties }}
+                            {% if form.duties.errors %}
+                                <div class="text-danger small mt-1">{{ form.duties.errors.0 }}</div>
+                            {% endif %}
+                            <div class="form-text small">До 2000 символов. Опишите конкретно, что предстоит делать.</div>
+                        </div>
+
+                        <!-- Навыки -->
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Требуемые навыки и опыт *</label>
+                            {{ form.skills }}
+                            {% if form.skills.errors %}
+                                <div class="text-danger small mt-1">{{ form.skills.errors.0 }}</div>
+                            {% endif %}
+                            <div class="form-text small">Если специальных навыков не требуется, так и напишите: «Опыт не требуется».</div>
+                        </div>
+
+                        <!-- Место проведения -->
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Место проведения *</label>
+                            {{ form.location }}
+                            {% if form.location.errors %}
+                                <div class="text-danger small mt-1">{{ form.location.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Суммарная нагрузка -->
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Нагрузка (в часах) *</label>
+                            {{ form.workload }}
+                            {% if form.workload.errors %}
+                                <div class="text-danger small mt-1">{{ form.workload.errors.0 }}</div>
+                            {% endif %}
+                            <div class="form-text small">От 0.5 до 400.0 ч.</div>
+                        </div>
+
+                        <!-- Вместимость / число мест -->
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Число мест *</label>
+                            {{ form.capacity }}
+                            {% if form.capacity.errors %}
+                                <div class="text-danger small mt-1">{{ form.capacity.errors.0 }}</div>
+                            {% endif %}
+                            <div class="form-text small">От 1 до 500 мест.</div>
+                        </div>
+
+                        <!-- Даты -->
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Срок отклика (дедлайн) *</label>
+                            {{ form.deadline }}
+                            {% if form.deadline.errors %}
+                                <div class="text-danger small mt-1">{{ form.deadline.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Дата и время начала *</label>
+                            {{ form.starts_at }}
+                            {% if form.starts_at.errors %}
+                                <div class="text-danger small mt-1">{{ form.starts_at.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Дата и время окончания *</label>
+                            {{ form.ends_at }}
+                            {% if form.ends_at.errors %}
+                                <div class="text-danger small mt-1">{{ form.ends_at.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Виды поощрения -->
+                        <div class="col-12 mt-4">
+                            <label class="form-label fw-semibold">Виды поощрения *</label>
+                            <div class="card p-3 bg-light border-0">
+                                <div class="d-flex flex-wrap gap-3">
+                                    {% for choice in form.reward_types %}
+                                        <div class="form-check">
+                                            {{ choice.tag }}
+                                            <label class="form-check-label ms-1" for="{{ choice.id_for_label }}">
+                                                {{ choice.choice_label }}
+                                            </label>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% if form.reward_types.errors %}
+                                <div class="text-danger small mt-1">{{ form.reward_types.errors.0 }}</div>
+                            {% endif %}
+                            <div class="form-text small">«Без вознаграждения» нельзя выбирать одновременно с другими видами.</div>
+                        </div>
+
+                        <!-- Условие поощрения -->
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Конкретное условие получения поощрения *</label>
+                            {{ form.reward_condition }}
+                            {% if form.reward_condition.errors %}
+                                <div class="text-danger small mt-1">{{ form.reward_condition.errors.0 }}</div>
+                            {% endif %}
+                            <div class="form-text small">Например: «Футболка и питание после завершения смены» или «Оплата по договору ГПХ по факту приёмки».</div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between pt-3 border-top gap-2">
+                        <a href="{% url 'opportunities:organizer_cards' %}" class="btn btn-outline-secondary">
+                            Отмена
+                        </a>
+
+                        <div class="d-flex gap-2">
+                            {% if not is_restricted and is_new or opportunity.status == 'DRAFT' %}
+                                <button type="submit" name="action" value="save_draft" class="btn btn-outline-dark">
+                                    <i class="bi bi-save me-1"></i> Сохранить как черновик
+                                </button>
+                            {% endif %}
+
+                            <button type="submit" name="action" value="publish" class="btn btn-nsu px-4 fw-semibold">
+                                {% if is_restricted %}
+                                    <i class="bi bi-check-lg me-1"></i> Сохранить изменения мест
+                                {% elif user.verified %}
+                                    <i class="bi bi-check2-circle me-1"></i> Опубликовать в каталог
+                                {% else %}
+                                    <i class="bi bi-send me-1"></i> Отправить на модерацию
+                                {% endif %}
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

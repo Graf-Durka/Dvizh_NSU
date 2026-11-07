@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title|default:"Конфликт данных (409)" }} — Движ НГУ{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-sm border-0 rounded-4 p-4 p-md-5 text-center bg-white my-4">
+                <div class="mb-3">
+                    <i class="bi bi-exclamation-octagon text-warning display-3"></i>
+                </div>
+                <h3 class="fw-bold mb-3">{{ title }}</h3>
+                <p class="text-secondary mb-4 fs-6 lh-base">
+                    {{ message }}
+                </p>
+
+                {% if existing_application %}
+                    <div class="alert alert-light border text-start small mb-4">
+                        <div class="fw-semibold mb-1">Ваша существующая заявка:</div>
+                        <div>Роль: <strong>{{ existing_application.opportunity.title }}</strong></div>
+                        <div>Текущий статус: <strong>{{ existing_application.get_status_display }}</strong></div>
+                        <div>Дата подачи: {{ existing_application.created_at|date:"d.m.Y H:i" }}</div>
+                    </div>
+                {% endif %}
+
+                <div class="d-flex justify-content-center gap-2">
+                    <a href="{% url 'applications:student_cabinet' %}" class="btn btn-nsu px-4">
+                        <i class="bi bi-bookmark-check me-1"></i> Перейти в Мои заявки
+                    </a>
+                    {% if opportunity %}
+                        <a href="{% url 'opportunities:detail' opportunity.pk %}" class="btn btn-outline-secondary">
+                            К описанию роли
+                        </a>
+                    {% else %}
+                        <a href="{% url 'opportunities:catalog' %}" class="btn btn-outline-secondary">
+                            В каталог
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

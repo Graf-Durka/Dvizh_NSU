@@ -1,0 +1,228 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ opportunity.title }} — Движ НГУ{% endblock %}
+
+{% block content %}
+<div class="container">
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'opportunities:catalog' %}">Каталог</a></li>
+            <li class="breadcrumb-item active">{{ opportunity.title|truncatechars:40 }}</li>
+        </ol>
+    </nav>
+
+    <div class="row g-4">
+        <!-- Основной блок с условиями роли -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0 rounded-4 p-4 p-md-5 mb-4 bg-white">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                    <span class="badge {% if opportunity.category == 'scientific' %}badge-scientific{% elif opportunity.category == 'volunteer' %}badge-volunteer{% else %}badge-one_off{% endif %} px-3 py-2 fs-6">
+                        {{ opportunity.get_category_display }}
+                    </span>
+                    <div>
+                        {% if opportunity.status == 'PUBLISHED' %}
+                            {% if opportunity.is_full %}
+                                <span class="badge bg-danger px-3 py-2 fs-6">Мест нет</span>
+                            {% else %}
+                                <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 fs-6">
+                                    Открыт набор
+                                </span>
+                            {% endif %}
+                        {% elif opportunity.status == 'CLOSED' %}
+                            <span class="badge bg-secondary px-3 py-2 fs-6">Набор закрыт</span>
+                        {% elif opportunity.status == 'PENDING_REVIEW' %}
+                            <span class="badge bg-warning text-dark px-3 py-2 fs-6">На проверке у модератора</span>
+                        {% elif opportunity.status == 'DRAFT' %}
+                            <span class="badge bg-light text-dark border px-3 py-2 fs-6">Черновик</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <h2 class="fw-bold text-dark mb-3">{{ opportunity.title }}</h2>
+
+                <div class="p-3 bg-light rounded-3 mb-4 d-flex align-items-center">
+                    <i class="bi bi-building fs-3 text-primary me-3"></i>
+                    <div>
+                        <div class="fw-bold">{{ opportunity.organizer.name }}</div>
+                        <div class="text-muted small">
+                            Организатор роли 
+                            {% if opportunity.organizer.verified %}
+                                <span class="badge bg-primary-subtle text-primary ms-1"><i class="bi bi-patch-check-fill me-1"></i>Подтверждён</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Блок обязанностей -->
+                <h5 class="fw-bold mb-3"><i class="bi bi-card-checklist me-2 text-primary"></i>Обязанности и задачи</h5>
+                <div class="text-secondary mb-4 fs-6 lh-base" style="white-space: pre-line;">{{ opportunity.duties }}</div>
+
+                <!-- Требования / навыки -->
+                <h5 class="fw-bold mb-2"><i class="bi bi-tools me-2 text-primary"></i>Требуемые навыки и опыт</h5>
+                <p class="text-secondary mb-4">{{ opportunity.skills|default:"Опыт не требуется" }}</p>
+
+                <!-- Поощрение и условия -->
+                <div class="card border border-info-subtle bg-info-subtle rounded-3 p-4 mb-4">
+                    <h5 class="fw-bold text-primary-emphasis mb-2">
+                        <i class="bi bi-gift me-2"></i>Что вы получаете за участие
+                    </h5>
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        {% for rlabel in opportunity.reward_type_labels %}
+                            <span class="badge bg-white text-dark border px-3 py-2 fs-6 shadow-sm">{{ rlabel }}</span>
+                        {% endfor %}
+                    </div>
+                    <div class="small text-secondary">
+                        <strong>Условие получения:</strong> {{ opportunity.reward_condition|default:"Согласно договорённости с организатором" }}
+                    </div>
+                </div>
+
+                <!-- Заметка модератора при возврате (если черновик) -->
+                {% if opportunity.moderation_note and user == opportunity.organizer %}
+                    <div class="alert alert-warning border-warning">
+                        <h6 class="fw-bold"><i class="bi bi-exclamation-triangle me-1"></i> Замечания модератора:</h6>
+                        <p class="mb-0">{{ opportunity.moderation_note }}</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Боковая колонка с условиями участия и формой отклика -->
+        <div class="col-lg-4">
+            <!-- Параметры участия -->
+            <div class="card shadow-sm border-0 rounded-4 p-4 mb-4 bg-white">
+                <h5 class="fw-bold mb-3">Условия участия</h5>
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-3 d-flex align-items-start">
+                        <i class="bi bi-geo-alt text-primary fs-5 me-3"></i>
+                        <div>
+                            <div class="small text-muted">Место проведения</div>
+                            <div class="fw-semibold">{{ opportunity.location }}</div>
+                        </div>
+                    </li>
+                    <li class="mb-3 d-flex align-items-start">
+                        <i class="bi bi-calendar-check text-primary fs-5 me-3"></i>
+                        <div>
+                            <div class="small text-muted">Даты и время</div>
+                            <div class="fw-semibold">
+                                {% if opportunity.starts_at %}
+                                    {{ opportunity.starts_at|date:"d E Y, H:i" }} — <br>{{ opportunity.ends_at|date:"d E Y, H:i" }}
+                                {% else %}
+                                    По договорённости
+                                {% endif %}
+                            </div>
+                        </div>
+                    </li>
+                    <li class="mb-3 d-flex align-items-start">
+                        <i class="bi bi-clock-history text-primary fs-5 me-3"></i>
+                        <div>
+                            <div class="small text-muted">Суммарная нагрузка</div>
+                            <div class="fw-semibold">{{ opportunity.workload }} ч.</div>
+                        </div>
+                    </li>
+                    <li class="mb-3 d-flex align-items-start">
+                        <i class="bi bi-people text-primary fs-5 me-3"></i>
+                        <div>
+                            <div class="small text-muted">Места</div>
+                            <div class="fw-semibold">
+                                Занято: <strong>{{ opportunity.occupied_seats }}</strong> из <strong>{{ opportunity.capacity }}</strong>
+                                {% if opportunity.is_full %}
+                                    <span class="text-danger fw-bold">(мест нет)</span>
+                                {% else %}
+                                    <span class="text-success">(свободно {{ opportunity.free_seats }})</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </li>
+                    <li class="d-flex align-items-start">
+                        <i class="bi bi-hourglass-bottom text-primary fs-5 me-3"></i>
+                        <div>
+                            <div class="small text-muted">Срок подачи отклика (дедлайн)</div>
+                            <div class="fw-semibold text-danger">
+                                {{ opportunity.deadline|date:"d E Y, H:i" }}
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Блок подачи заявки / статуса -->
+            <div class="card shadow-sm border-0 rounded-4 p-4 bg-white">
+                <h5 class="fw-bold mb-3">Отклик на роль</h5>
+
+                {% if user.is_authenticated and user.is_student %}
+                    {% if existing_application %}
+                        <div class="alert alert-info border-info mb-3">
+                            <h6 class="fw-bold mb-1">
+                                <i class="bi bi-info-circle me-1"></i> Вы уже подали заявку
+                            </h6>
+                            <div class="small mb-2">Статус: <strong>{{ existing_application.get_status_display }}</strong></div>
+                            <a href="{% url 'applications:student_cabinet' %}" class="btn btn-primary btn-sm w-100">
+                                Перейти в Мои заявки
+                            </a>
+                        </div>
+                    {% elif opportunity.status == 'CLOSED' %}
+                        <div class="alert alert-secondary">
+                            <i class="bi bi-lock me-1"></i> Набор на данную роль закрыт.
+                        </div>
+                    {% elif opportunity.deadline and opportunity.deadline <= now %}
+                        <div class="alert alert-warning">
+                            <i class="bi bi-clock me-1"></i> Срок подачи заявок уже истёк.
+                        </div>
+                    {% elif opportunity.is_full %}
+                        <div class="alert alert-danger">
+                            <i class="bi bi-x-circle me-1"></i> Свободных мест больше нет. Все места заняты подтверждёнными участниками.
+                        </div>
+                    {% else %}
+                        <!-- Форма отклика для студента (F3) -->
+                        <form method="post" action="{% url 'applications:apply' opportunity.pk %}">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label class="form-label small fw-semibold">Коротко о себе и мотивации *</label>
+                                <textarea name="comment" class="form-control" rows="3" maxlength="500" required placeholder="Напишите, почему хотите участвовать или какой у вас есть релевантный опыт..."></textarea>
+                                <div class="form-text small">До 500 символов.</div>
+                            </div>
+                            <button type="submit" class="btn btn-nsu w-100 py-2 fw-semibold">
+                                <i class="bi bi-send me-1"></i> Отправить отклик
+                            </button>
+                        </form>
+                    {% endif %}
+
+                {% elif not user.is_authenticated %}
+                    <div class="text-center py-3">
+                        <i class="bi bi-lock text-muted fs-1 mb-2"></i>
+                        <p class="small text-muted mb-3">Чтобы откликнуться на эту возможность, войдите или зарегистрируйтесь как студент.</p>
+                        <a href="{% url 'accounts:login' %}?next={{ request.path }}" class="btn btn-nsu btn-sm w-100 mb-2">Войти</a>
+                        <a href="{% url 'accounts:register' %}" class="btn btn-outline-secondary btn-sm w-100">Регистрация</a>
+                    </div>
+
+                {% elif user == opportunity.organizer %}
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'applications:organizer_roster' opportunity.pk %}" class="btn btn-nsu">
+                            <i class="bi bi-people me-1"></i> Управление откликами ({{ opportunity.applications.count }})
+                        </a>
+                        {% if opportunity.status != 'CLOSED' and opportunity.status != 'PENDING_REVIEW' %}
+                            <a href="{% url 'opportunities:edit_opportunity' opportunity.pk %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-pencil me-1"></i> Редактировать карточку
+                            </a>
+                        {% endif %}
+                    </div>
+
+                {% elif user.is_moderator and opportunity.status == 'PENDING_REVIEW' %}
+                    <div class="p-3 bg-light rounded-3">
+                        <div class="fw-bold mb-2 text-warning-emphasis">Карточка на модерации</div>
+                        <form method="post" action="{% url 'opportunities:moderation_approve' opportunity.pk %}" class="mb-2">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-success w-100">
+                                <i class="bi bi-check-lg me-1"></i> Одобрить и опубликовать
+                            </button>
+                        </form>
+                        <a href="{% url 'opportunities:moderation_queue' %}" class="btn btn-outline-secondary btn-sm w-100">
+                            К очереди модерации
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

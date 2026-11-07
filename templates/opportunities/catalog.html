@@ -1,0 +1,201 @@
+{% extends 'base.html' %}
+
+{% block title %}Каталог возможностей — Движ НГУ{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Приветственный блок -->
+    <div class="p-4 p-md-5 mb-4 rounded-4 bg-white shadow-sm border border-light-subtle">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle mb-2 px-3 py-1 fw-semibold">
+                    Новосибирский государственный университет
+                </span>
+                <h1 class="display-6 fw-bold text-dark mb-2">Студенческие возможности и проекты</h1>
+                <p class="lead text-muted mb-0">
+                    Найди, где в НГУ нужны люди, сколько времени займёт участие и что предлагают взамен: опыт, мерч, питание или вознаграждение.
+                </p>
+            </div>
+            <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+                {% if user.is_authenticated and user.is_organizer %}
+                    <a href="{% url 'opportunities:create_opportunity' %}" class="btn btn-nsu btn-lg shadow-sm">
+                        <i class="bi bi-plus-circle me-1"></i> Опубликовать роль
+                    </a>
+                {% elif not user.is_authenticated %}
+                    <a href="{% url 'accounts:register' %}" class="btn btn-warning btn-lg text-dark fw-bold shadow-sm">
+                        Присоединиться к Движу
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Блок 4 фильтров (F2) -->
+    <div class="card shadow-sm border-0 rounded-4 mb-4">
+        <div class="card-body p-4">
+            <div class="d-flex align-items-center mb-3">
+                <i class="bi bi-funnel text-primary fs-5 me-2"></i>
+                <h5 class="fw-bold mb-0">Фильтры каталога</h5>
+            </div>
+            <form method="get" class="row g-3">
+                <!-- 1. Категория -->
+                <div class="col-md-3">
+                    <label class="form-label small fw-semibold">Категория</label>
+                    <select name="category" class="form-select">
+                        <option value="">Все категории</option>
+                        {% for code, label in categories %}
+                            <option value="{{ code }}" {% if selected_category == code %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- 2. Дата начала (диапазон) -->
+                <div class="col-md-3">
+                    <label class="form-label small fw-semibold">Дата начала (с — по)</label>
+                    <div class="input-group">
+                        <input type="date" name="date_from" value="{{ date_from }}" class="form-control" title="Начиная с даты">
+                        <input type="date" name="date_to" value="{{ date_to }}" class="form-control" title="По дату">
+                    </div>
+                </div>
+
+                <!-- 3. Суммарная нагрузка -->
+                <div class="col-md-3">
+                    <label class="form-label small fw-semibold">Нагрузка</label>
+                    <select name="workload" class="form-select">
+                        <option value="">Любая нагрузка</option>
+                        <option value="le2" {% if selected_workload == 'le2' %}selected{% endif %}>До 2 часов (≤ 2 ч)</option>
+                        <option value="2to4" {% if selected_workload == '2to4' %}selected{% endif %}>От 2 до 4 часов (2–4 ч)</option>
+                        <option value="gt4" {% if selected_workload == 'gt4' %}selected{% endif %}>Более 4 часов (> 4 ч)</option>
+                    </select>
+                </div>
+
+                <!-- 4. Вид поощрения -->
+                <div class="col-md-3">
+                    <label class="form-label small fw-semibold">Вид поощрения</label>
+                    <select name="reward" class="form-select">
+                        <option value="">Любое поощрение</option>
+                        {% for code, label in reward_types %}
+                            <option value="{{ code }}" {% if selected_reward == code %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-12 d-flex gap-2 justify-content-end mt-3">
+                    <a href="{% url 'opportunities:catalog' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle me-1"></i> Сбросить
+                    </a>
+                    <button type="submit" class="btn btn-nsu px-4">
+                        <i class="bi bi-search me-1"></i> Найти возможности
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Выдача карточек (12 на страницу) -->
+    {% if page_obj %}
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+            {% for opp in page_obj %}
+                <div class="col">
+                    <div class="card h-100 card-opportunity p-3 d-flex flex-column">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <span class="badge {% if opp.category == 'scientific' %}badge-scientific{% elif opp.category == 'volunteer' %}badge-volunteer{% else %}badge-one_off{% endif %} px-2 py-1">
+                                {{ opp.get_category_display }}
+                            </span>
+                            {% if opp.is_full %}
+                                <span class="badge bg-danger px-2 py-1 fw-bold">
+                                    <i class="bi bi-x-circle me-1"></i> Мест нет
+                                </span>
+                            {% else %}
+                                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                                    Свободно: {{ opp.free_seats }} из {{ opp.capacity }}
+                                </span>
+                            {% endif %}
+                        </div>
+
+                        <h5 class="fw-bold mb-2">
+                            <a href="{% url 'opportunities:detail' opp.pk %}" class="text-decoration-none text-dark stretched-link">
+                                {{ opp.title }}
+                            </a>
+                        </h5>
+
+                        <div class="text-muted small mb-2">
+                            <i class="bi bi-building me-1"></i> {{ opp.organizer.name }}
+                        </div>
+
+                        <div class="small text-secondary mb-3 flex-grow-1">
+                            <div class="mb-1">
+                                <i class="bi bi-calendar-event me-1"></i>
+                                {% if opp.starts_at %}
+                                    {{ opp.starts_at|date:"d.m.Y H:i" }} — {{ opp.ends_at|date:"d.m.Y H:i" }}
+                                {% else %}
+                                    По договорённости
+                                {% endif %}
+                            </div>
+                            <div class="mb-1">
+                                <i class="bi bi-clock me-1"></i> Нагрузка: <strong>{{ opp.workload }} ч.</strong>
+                            </div>
+                            <div class="mb-1 text-truncate" title="{{ opp.location }}">
+                                <i class="bi bi-geo-alt me-1"></i> {{ opp.location }}
+                            </div>
+                        </div>
+
+                        <!-- Бейджи поощрений -->
+                        <div class="mb-3 d-flex flex-wrap gap-1">
+                            {% for rlabel in opp.reward_type_labels %}
+                                <span class="badge badge-reward px-2 py-1 small">{{ rlabel }}</span>
+                            {% endfor %}
+                        </div>
+
+                        <!-- Нижняя плашка -->
+                        <div class="border-top pt-2 mt-auto d-flex justify-content-between align-items-center small text-muted">
+                            <span>
+                                <i class="bi bi-hourglass-split me-1"></i> Дедлайн: {{ opp.deadline|date:"d.m H:i" }}
+                            </span>
+                            <span class="text-primary fw-semibold">Подробнее &rarr;</span>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Пагинация -->
+        {% if page_obj.has_other_pages %}
+            <nav class="mt-5">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}&category={{ selected_category }}&workload={{ selected_workload }}&reward={{ selected_reward }}&date_from={{ date_from }}&date_to={{ date_to }}">&laquo; Назад</a>
+                        </li>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}&category={{ selected_category }}&workload={{ selected_workload }}&reward={{ selected_reward }}&date_from={{ date_from }}&date_to={{ date_to }}">{{ num }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}&category={{ selected_category }}&workload={{ selected_workload }}&reward={{ selected_reward }}&date_from={{ date_from }}&date_to={{ date_to }}">Вперёд &raquo;</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        {% endif %}
+    {% else %}
+        <div class="text-center py-5 bg-white rounded-4 shadow-sm my-4 border">
+            <i class="bi bi-inbox text-muted display-4"></i>
+            <h4 class="fw-bold mt-3">Сейчас нет открытых возможностей</h4>
+            <p class="text-muted">Попробуйте изменить параметры поиска или сбросить фильтры.</p>
+            <a href="{% url 'opportunities:catalog' %}" class="btn btn-outline-primary">
+                Сбросить фильтры
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

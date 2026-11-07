@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+
+{% block title %}Мои заявки — Движ НГУ{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="mb-4">
+        <h2 class="fw-bold">Личный кабинет студента</h2>
+        <p class="text-muted">Отслеживайте статусы ваших заявок, подтверждайте участие и смотрите историю</p>
+    </div>
+
+    {% if applications %}
+        <div class="row g-4">
+            {% for app in applications %}
+                <div class="col-12">
+                    <div class="card shadow-sm border-0 rounded-4 p-4 bg-white">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 pb-2 border-bottom gap-2">
+                            <div>
+                                <span class="badge {% if app.opportunity.category == 'scientific' %}badge-scientific{% elif app.opportunity.category == 'volunteer' %}badge-volunteer{% else %}badge-one_off{% endif %} me-2">
+                                    {{ app.opportunity.get_category_display }}
+                                </span>
+                                
+                                {% if app.status == 'PENDING' %}
+                                    <span class="badge bg-warning text-dark fs-6 px-3 py-1">Отправлена</span>
+                                {% elif app.status == 'ACCEPTED' %}
+                                    <span class="badge bg-info text-dark fs-6 px-3 py-1">Принята организатором</span>
+                                {% elif app.status == 'CONFIRMED' %}
+                                    <span class="badge bg-success fs-6 px-3 py-1">
+                                        <i class="bi bi-check2-circle me-1"></i> Участие подтверждено (место за вами)
+                                    </span>
+                                {% elif app.status == 'COMPLETED' %}
+                                    <span class="badge bg-primary fs-6 px-3 py-1">
+                                        <i class="bi bi-trophy-fill me-1 text-warning"></i> Выполнена
+                                    </span>
+                                {% elif app.status == 'REJECTED' %}
+                                    <span class="badge bg-danger fs-6 px-3 py-1">Отклонена</span>
+                                {% elif app.status == 'CANCELLED' %}
+                                    <span class="badge bg-secondary fs-6 px-3 py-1">Отменена</span>
+                                {% endif %}
+                            </div>
+
+                            <div class="small text-muted">
+                                Подана: {{ app.created_at|date:"d.m.Y H:i" }}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-lg-8">
+                                <h4 class="fw-bold mb-2">
+                                    <a href="{% url 'opportunities:detail' app.opportunity.pk %}" class="text-decoration-none text-dark">
+                                        {{ app.opportunity.title }}
+                                    </a>
+                                </h4>
+
+                                <div class="text-muted small mb-3">
+                                    <i class="bi bi-building me-1"></i> {{ app.opportunity.organizer.name }} 
+                                    | <i class="bi bi-geo-alt ms-2 me-1"></i> {{ app.opportunity.location }}
+                                    | <i class="bi bi-clock ms-2 me-1"></i> {{ app.opportunity.workload }} ч.
+                                </div>
+
+                                <div class="p-3 bg-light rounded-3 mb-3 small">
+                                    <div class="mb-1">
+                                        <strong>Время проведения:</strong> 
+                                        {% if app.opportunity.starts_at %}
+                                            {{ app.opportunity.starts_at|date:"d.m.Y H:i" }} — {{ app.opportunity.ends_at|date:"d.m.Y H:i" }}
+                                        {% else %}
+                                            По договорённости
+                                        {% endif %}
+                                    </div>
+                                    <div class="mb-1">
+                                        <strong>Поощрение:</strong> {{ app.opportunity.reward_type_labels|join:", " }}
+                                    </div>
+                                    <div>
+                                        <strong>Условие получения:</strong> {{ app.opportunity.reward_condition }}
+                                    </div>
+                                </div>
+
+                                <div class="mb-3 small">
+                                    <strong>Ваш комментарий к отклику:</strong>
+                                    <div class="text-secondary fst-italic">«{{ app.comment }}»</div>
+                                </div>
+                            </div>
+
+                            <!-- Правая колонка с действиями студента -->
+                            <div class="col-lg-4 border-start-lg ps-lg-4 d-flex flex-column justify-content-between">
+                                <div>
+                                    {% if app.status == 'ACCEPTED' %}
+                                        <div class="alert alert-primary py-2 px-3 small mb-3">
+                                            <i class="bi bi-info-circle-fill me-1"></i>
+                                            Организатор одобрил вашу заявку. <strong>Место ещё не забронировано!</strong> Подтвердите готовность участвовать, чтобы занять место.
+                                        </div>
+                                        <form method="post" action="{% url 'applications:confirm' app.pk %}" class="mb-2">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-success w-100 fw-semibold">
+                                                <i class="bi bi-check-lg me-1"></i> Подтвердить участие
+                                            </button>
+                                        </form>
+                                        <form method="post" action="{% url 'applications:cancel' app.pk %}">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-outline-danger btn-sm w-100" onclick="return confirm('Отказаться от участия?');">
+                                                Отказаться
+                                            </button>
+                                        </form>
+
+                                    {% elif app.status == 'CONFIRMED' %}
+                                        <div class="alert alert-success py-2 px-3 small mb-3">
+                                            <i class="bi bi-shield-check me-1"></i> Вы подтвердили участие. Организатор ждёт вас на мероприятии.
+                                        </div>
+                                        {% if app.opportunity.starts_at and app.opportunity.starts_at > now %}
+                                            <form method="post" action="{% url 'applications:cancel' app.pk %}">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-outline-secondary btn-sm w-100" onclick="return confirm('Вы уверены, что хотите отменить участие? Ваше место освободится для других студентов.');">
+                                                    <i class="bi bi-x-circle me-1"></i> Отменить участие
+                                                </button>
+                                            </form>
+                                        {% else %}
+                                            <span class="text-muted small">Событие началось или завершилось.</span>
+                                        {% endif %}
+
+                                    {% elif app.status == 'PENDING' %}
+                                        <div class="text-muted small mb-2">
+                                            Ожидает решения координатора. Вы можете отозвать отклик до начала события.
+                                        </div>
+                                        {% if app.opportunity.starts_at and app.opportunity.starts_at > now %}
+                                            <form method="post" action="{% url 'applications:cancel' app.pk %}">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-outline-secondary btn-sm w-100" onclick="return confirm('Отозвать заявку?');">
+                                                    Отозвать заявку
+                                                </button>
+                                            </form>
+                                        {% endif %}
+
+                                    {% elif app.status == 'COMPLETED' %}
+                                        <div class="alert alert-success py-2 px-3 small">
+                                            <i class="bi bi-award-fill text-warning me-1"></i>
+                                            Участие успешно выполнено и зафиксировано организатором!
+                                        </div>
+                                    {% endif %}
+                                </div>
+
+                                <!-- История событий заявки -->
+                                <div class="mt-3 pt-3 border-top">
+                                    <a class="text-decoration-none small text-muted d-flex align-items-center justify-content-between" data-bs-toggle="collapse" href="#history{{ app.pk }}">
+                                        <span><i class="bi bi-clock-history me-1"></i> История переходов ({{ app.events.count }})</span>
+                                        <i class="bi bi-chevron-down"></i>
+                                    </a>
+                                    <div class="collapse mt-2" id="history{{ app.pk }}">
+                                        <ul class="list-unstyled small text-muted mb-0">
+                                            {% for ev in app.events.all %}
+                                                <li class="mb-1">
+                                                    {{ ev.created_at|date:"d.m H:i" }}: 
+                                                    <span class="text-dark">
+                                                        {% if ev.from_status %}{{ ev.from_status }} &rarr; {% else %}Создана: {% endif %}{{ ev.to_status }}
+                                                    </span> 
+                                                    ({{ ev.actor.name }})
+                                                </li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="text-center py-5 bg-white rounded-4 shadow-sm border">
+            <i class="bi bi-bookmark-x text-muted display-4"></i>
+            <h4 class="fw-bold mt-3">Вы ещё не откликались на возможности</h4>
+            <p class="text-muted">Перейдите в каталог возможностей НГУ и выберите подходящую роль.</p>
+            <a href="{% url 'opportunities:catalog' %}" class="btn btn-nsu">
+                <i class="bi bi-search me-1"></i> Перейти в каталог
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

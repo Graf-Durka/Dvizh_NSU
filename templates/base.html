@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <title>{% block title %}Движ НГУ — Студенческие возможности и набор участников{% endblock %}</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        :root {
+            --nsu-blue: #003865;
+            --nsu-blue-light: #005a9e;
+            --nsu-emerald: #00875a;
+            --nsu-bg: #f8fafc;
+            --nsu-card-bg: #ffffff;
+            --nsu-text: #1e293b;
+        }
+        body {
+            background-color: var(--nsu-bg);
+            color: var(--nsu-text);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .navbar-nsu {
+            background-color: var(--nsu-blue);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.25rem;
+            letter-spacing: 0.3px;
+        }
+        .brand-badge {
+            background-color: rgba(255, 255, 255, 0.15);
+            font-size: 0.75rem;
+            padding: 3px 8px;
+            border-radius: 12px;
+            margin-left: 6px;
+        }
+        .main-content {
+            flex: 1 0 auto;
+            padding-top: 1.5rem;
+            padding-bottom: 3rem;
+        }
+        .footer-nsu {
+            background-color: #0f172a;
+            color: #94a3b8;
+            font-size: 0.9rem;
+            padding: 1.5rem 0;
+            margin-top: auto;
+        }
+        .badge-scientific { background-color: #6366f1; color: #fff; }
+        .badge-volunteer { background-color: #059669; color: #fff; }
+        .badge-one_off { background-color: #d97706; color: #fff; }
+        
+        .badge-reward {
+            background-color: #e0f2fe;
+            color: #0369a1;
+            border: 1px solid #bae6fd;
+            font-weight: 500;
+        }
+        .card-opportunity {
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            background: #fff;
+        }
+        .card-opportunity:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.06);
+        }
+        .btn-nsu {
+            background-color: var(--nsu-blue);
+            border-color: var(--nsu-blue);
+            color: #fff;
+        }
+        .btn-nsu:hover {
+            background-color: var(--nsu-blue-light);
+            border-color: var(--nsu-blue-light);
+            color: #fff;
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <!-- Навигационная панель -->
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-nsu sticky-top">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center" href="{% url 'opportunities:catalog' %}">
+                <i class="bi bi-compass me-2 text-warning"></i>
+                <span>Движ НГУ</span>
+                <span class="brand-badge text-light">Платформа возможностей</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarContent">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="{% url 'opportunities:catalog' %}">
+                            <i class="bi bi-grid me-1"></i> Каталог возможностей
+                        </a>
+                    </li>
+                    {% if user.is_authenticated %}
+                        {% if user.is_student %}
+                            <li class="nav-item">
+                                <a class="nav-link text-white" href="{% url 'applications:student_cabinet' %}">
+                                    <i class="bi bi-bookmark-check me-1"></i> Мои заявки
+                                </a>
+                            </li>
+                        {% elif user.is_organizer %}
+                            <li class="nav-item">
+                                <a class="nav-link text-white" href="{% url 'opportunities:organizer_cards' %}">
+                                    <i class="bi bi-folder2-open me-1"></i> Мои наборы
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-white" href="{% url 'opportunities:create_opportunity' %}">
+                                    <i class="bi bi-plus-circle me-1"></i> Опубликовать роль
+                                </a>
+                            </li>
+                        {% elif user.is_moderator %}
+                            <li class="nav-item">
+                                <a class="nav-link text-white" href="{% url 'opportunities:moderation_queue' %}">
+                                    <i class="bi bi-shield-check me-1"></i> Очередь модерации
+                                </a>
+                            </li>
+                        {% endif %}
+                    {% endif %}
+                </ul>
+
+                <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-lg-center">
+                    {% if user.is_authenticated %}
+                        <li class="nav-item dropdown me-2">
+                            <a class="nav-link dropdown-toggle text-white d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown">
+                                <i class="bi bi-person-circle fs-5 me-2"></i>
+                                <span>{{ user.name }}</span>
+                                <span class="badge bg-light text-dark ms-2 small">{{ user.get_role_display }}</span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end shadow">
+                                <li><a class="dropdown-item" href="{% url 'accounts:cabinet' %}"><i class="bi bi-speedometer2 me-2"></i> Личный кабинет</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <form method="post" action="{% url 'accounts:logout' %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="dropdown-item text-danger">
+                                            <i class="bi bi-box-arrow-right me-2"></i> Выйти
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </li>
+                    {% else %}
+                        <li class="nav-item me-2">
+                            <a class="btn btn-outline-light btn-sm px-3" href="{% url 'accounts:login' %}">
+                                <i class="bi bi-box-arrow-in-right me-1"></i> Войти
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="btn btn-warning btn-sm px-3 text-dark fw-bold" href="{% url 'accounts:register' %}">
+                                Регистрация
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Сообщения системы -->
+    <div class="container mt-3">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show shadow-sm" role="alert">
+                    <i class="bi {% if message.tags == 'success' %}bi-check-circle-fill{% elif message.tags == 'error' %}bi-exclamation-triangle-fill{% else %}bi-info-circle-fill{% endif %} me-2"></i>
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
+    <!-- Основной контент -->
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Подвал -->
+    <footer class="footer-nsu">
+        <div class="container text-center text-md-start">
+            <div class="row align-items-center">
+                <div class="col-md-6 mb-2 mb-md-0">
+                    <span class="fw-bold text-white">«Движ НГУ»</span> — веб-платформа студенческих возможностей, волонтёрства и научных проектов Новосибирского государственного университета.
+                </div>
+                <div class="col-md-6 text-md-end text-light small">
+                    Часовой пояс: Asia/Novosibirsk (НСК) | Версия MVP 1.0
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

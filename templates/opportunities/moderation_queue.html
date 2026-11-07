@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+
+{% block title %}Очередь модерации — Движ НГУ{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="mb-4">
+        <h2 class="fw-bold">Очередь первичной модерации</h2>
+        <p class="text-muted">
+            Проверка первых публикаций организаторов. Одобрение карточки подтверждает автора и открывает ему прямую публикацию последующих наборов.
+        </p>
+    </div>
+
+    {% if pending_cards %}
+        <div class="row g-4">
+            {% for card in pending_cards %}
+                <div class="col-12">
+                    <div class="card shadow-sm border-0 rounded-4 p-4 bg-white">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                            <div>
+                                <span class="badge {% if card.category == 'scientific' %}badge-scientific{% elif card.category == 'volunteer' %}badge-volunteer{% else %}badge-one_off{% endif %} me-2">
+                                    {{ card.get_category_display }}
+                                </span>
+                                <span class="badge bg-warning text-dark">Ожидает проверки</span>
+                            </div>
+                            <div class="small text-muted">
+                                Подано: {{ card.created_at|date:"d.m.Y H:i" }}
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-8">
+                                <h4 class="fw-bold text-dark mb-2">{{ card.title }}</h4>
+                                <div class="mb-3">
+                                    <strong>Организатор:</strong> {{ card.organizer.name }} 
+                                    <span class="text-muted">({{ card.organizer.email }})</span>
+                                    {% if not card.organizer.verified %}
+                                        <span class="badge bg-secondary ms-1">Новый автор (не подтверждён)</span>
+                                    {% endif %}
+                                </div>
+
+                                <div class="mb-3">
+                                    <h6 class="fw-bold text-secondary mb-1">Обязанности:</h6>
+                                    <div class="small text-secondary" style="white-space: pre-line;">{{ card.duties }}</div>
+                                </div>
+
+                                <div class="mb-2">
+                                    <h6 class="fw-bold text-secondary mb-1">Требования:</h6>
+                                    <div class="small text-secondary">{{ card.skills }}</div>
+                                </div>
+
+                                <div>
+                                    <h6 class="fw-bold text-secondary mb-1">Поощрение:</h6>
+                                    <div class="small text-secondary">
+                                        Виды: <strong>{{ card.reward_type_labels|join:", " }}</strong>. 
+                                        Условие: {{ card.reward_condition }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4 border-start-md ps-md-4 mt-3 mt-md-0">
+                                <div class="bg-light p-3 rounded-3 mb-3 small">
+                                    <div class="mb-2"><strong>Место:</strong> {{ card.location }}</div>
+                                    <div class="mb-2"><strong>Нагрузка:</strong> {{ card.workload }} ч.</div>
+                                    <div class="mb-2"><strong>Число мест:</strong> {{ card.capacity }}</div>
+                                    <div class="mb-2"><strong>Дедлайн:</strong> {{ card.deadline|date:"d.m.Y H:i" }}</div>
+                                    <div><strong>Начало:</strong> {{ card.starts_at|date:"d.m.Y H:i" }}</div>
+                                </div>
+
+                                <!-- Кнопки модератора -->
+                                <div class="d-grid gap-2">
+                                    <form method="post" action="{% url 'opportunities:moderation_approve' card.pk %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-success w-100" onclick="return confirm('Одобрить карточку и подтвердить организатора?');">
+                                            <i class="bi bi-check-circle me-1"></i> Одобрить и опубликовать
+                                        </button>
+                                    </form>
+
+                                    <!-- Кнопка вызова модального окна для возврата -->
+                                    <button type="button" class="btn btn-outline-danger w-100" data-bs-toggle="modal" data-bs-target="#returnModal{{ card.pk }}">
+                                        <i class="bi bi-arrow-return-left me-1"></i> Вернуть с замечанием
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Модальное окно возврата на доработку -->
+                <div class="modal fade" id="returnModal{{ card.pk }}" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <form method="post" action="{% url 'opportunities:moderation_return' card.pk %}">
+                                {% csrf_token %}
+                                <div class="modal-header">
+                                    <h5 class="modal-title fw-bold">Возврат карточки на доработку</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <p class="small text-muted mb-3">
+                                        Укажите конкретную причину возврата, чтобы автор карточки «{{ card.title }}» знал, что требуется исправить.
+                                    </p>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Причина возврата (обязательно) *</label>
+                                        <textarea name="moderation_note" class="form-control" rows="4" required maxlength="500" placeholder="Например: Не указано точное место проведения смены или условия выдачи мерча..."></textarea>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+                                    <button type="submit" class="btn btn-danger">Вернуть в черновики</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="text-center py-5 bg-white rounded-4 shadow-sm border">
+            <i class="bi bi-check2-all text-success display-4"></i>
+            <h4 class="fw-bold mt-3">Нет публикаций, ожидающих проверки</h4>
+            <p class="text-muted">Все поданные карточки рассмотрены. Очередь чиста.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

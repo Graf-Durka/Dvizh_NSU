@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+
+{% block title %}Мои наборы — Движ НГУ{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div>
+            <h2 class="fw-bold mb-1">Управление наборами</h2>
+            <p class="text-muted mb-0">Публикуйте роли для студенческих проектов, конференций и волонтёрских смен</p>
+        </div>
+        <a href="{% url 'opportunities:create_opportunity' %}" class="btn btn-nsu shadow-sm">
+            <i class="bi bi-plus-circle me-1"></i> Опубликовать новую роль
+        </a>
+    </div>
+
+    {% if not user.verified %}
+        <div class="alert alert-info border-info d-flex align-items-center mb-4">
+            <i class="bi bi-info-circle fs-4 me-3"></i>
+            <div>
+                <strong>Первичная модерация:</strong> Ваша первая карточка отправляется на проверку модератору. После её одобрения ваш аккаунт будет подтверждён, и последующие карточки будут публиковаться сразу.
+            </div>
+        </div>
+    {% endif %}
+
+    {% if cards %}
+        <div class="row g-4">
+            {% for card in cards %}
+                <div class="col-12">
+                    <div class="card shadow-sm border-0 rounded-4 p-4 bg-white">
+                        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+                            <div>
+                                <span class="badge {% if card.category == 'scientific' %}badge-scientific{% elif card.category == 'volunteer' %}badge-volunteer{% else %}badge-one_off{% endif %} me-2">
+                                    {{ card.get_category_display }}
+                                </span>
+                                {% if card.status == 'PUBLISHED' %}
+                                    <span class="badge bg-success">Опубликовано</span>
+                                {% elif card.status == 'PENDING_REVIEW' %}
+                                    <span class="badge bg-warning text-dark">На проверке у модератора</span>
+                                {% elif card.status == 'DRAFT' %}
+                                    <span class="badge bg-secondary">Черновик</span>
+                                {% elif card.status == 'CLOSED' %}
+                                    <span class="badge bg-dark">Набор закрыт</span>
+                                {% endif %}
+                            </div>
+
+                            <div class="small text-muted">
+                                Создано: {{ card.created_at|date:"d.m.Y H:i" }}
+                            </div>
+                        </div>
+
+                        <h4 class="fw-bold mb-2">
+                            <a href="{% url 'opportunities:detail' card.pk %}" class="text-decoration-none text-dark">
+                                {{ card.title }}
+                            </a>
+                        </h4>
+
+                        <div class="row text-secondary small mb-3 g-2">
+                            <div class="col-md-3">
+                                <i class="bi bi-people me-1"></i> Места: <strong>{{ card.occupied_seats }}</strong> из <strong>{{ card.capacity }}</strong> занято
+                            </div>
+                            <div class="col-md-3">
+                                <i class="bi bi-clock me-1"></i> Нагрузка: <strong>{{ card.workload }} ч.</strong>
+                            </div>
+                            <div class="col-md-3">
+                                <i class="bi bi-hourglass-split me-1"></i> Дедлайн: <strong>{{ card.deadline|date:"d.m.Y H:i"|default:"не задан" }}</strong>
+                            </div>
+                            <div class="col-md-3">
+                                <i class="bi bi-calendar-event me-1"></i> Начало: <strong>{{ card.starts_at|date:"d.m.Y H:i"|default:"не задано" }}</strong>
+                            </div>
+                        </div>
+
+                        <!-- Предупреждение о замечаниях модератора -->
+                        {% if card.moderation_note and card.status == 'DRAFT' %}
+                            <div class="alert alert-warning py-2 mb-3 small">
+                                <strong>Причина возврата на доработку:</strong> {{ card.moderation_note }}
+                            </div>
+                        {% endif %}
+
+                        <!-- Кнопки управления карточкой -->
+                        <div class="d-flex flex-wrap gap-2 pt-2 border-top align-items-center">
+                            <a href="{% url 'opportunities:detail' card.pk %}" class="btn btn-outline-primary btn-sm">
+                                <i class="bi bi-eye me-1"></i> Просмотр
+                            </a>
+
+                            <a href="{% url 'applications:organizer_roster' card.pk %}" class="btn btn-nsu btn-sm">
+                                <i class="bi bi-people me-1"></i> Отклики студентов ({{ card.applications.count }})
+                            </a>
+
+                            {% if card.status == 'DRAFT' %}
+                                <a href="{% url 'opportunities:edit_opportunity' card.pk %}" class="btn btn-outline-secondary btn-sm">
+                                    <i class="bi bi-pencil me-1"></i> Редактировать и опубликовать
+                                </a>
+                            {% elif card.status == 'PENDING_REVIEW' %}
+                                <form method="post" action="{% url 'opportunities:withdraw_opportunity' card.pk %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-outline-warning btn-sm text-dark">
+                                        <i class="bi bi-arrow-return-left me-1"></i> Отозвать с проверки в черновик
+                                    </button>
+                                </form>
+                            {% elif card.status == 'PUBLISHED' %}
+                                <a href="{% url 'opportunities:edit_opportunity' card.pk %}" class="btn btn-outline-secondary btn-sm">
+                                    <i class="bi bi-pencil me-1"></i> Редактировать
+                                </a>
+                                <form method="post" action="{% url 'opportunities:close_opportunity' card.pk %}" class="d-inline" onsubmit="return confirm('Вы уверены, что хотите закрыть набор? Карточка исчезнет из каталога, но вы сможете обработать уже поданные заявки.');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-outline-danger btn-sm">
+                                        <i class="bi bi-lock me-1"></i> Закрыть набор
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="text-center py-5 bg-white rounded-4 shadow-sm border">
+            <i class="bi bi-folder-plus text-muted display-4"></i>
+            <h4 class="fw-bold mt-3">У вас пока нет созданных наборов</h4>
+            <p class="text-muted">Опубликуйте первую роль для студентов НГУ прямо сейчас.</p>
+            <a href="{% url 'opportunities:create_opportunity' %}" class="btn btn-nsu">
+                <i class="bi bi-plus-circle me-1"></i> Создать роль
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
